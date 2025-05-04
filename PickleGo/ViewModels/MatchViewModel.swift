@@ -30,7 +30,8 @@ class MatchViewModel: ObservableObject {
                 scores: [],
                 status: .scheduled,
                 notes: "Evening match",
-                isPublicFacility: true
+                isPublicFacility: true,
+                partnerSelection: .fixed
             ),
             Match(
                 id: UUID().uuidString,
@@ -44,7 +45,8 @@ class MatchViewModel: ObservableObject {
                 scores: [],
                 status: .scheduled,
                 notes: nil,
-                isPublicFacility: false
+                isPublicFacility: false,
+                partnerSelection: .fixed
             ),
             Match(
                 id: UUID().uuidString,
@@ -62,7 +64,8 @@ class MatchViewModel: ObservableObject {
                 ],
                 status: .completed,
                 notes: "Tough match!",
-                isPublicFacility: true
+                isPublicFacility: true,
+                partnerSelection: .rotating
             ),
             Match(
                 id: UUID().uuidString,
@@ -79,7 +82,8 @@ class MatchViewModel: ObservableObject {
                 ],
                 status: .completed,
                 notes: nil,
-                isPublicFacility: false
+                isPublicFacility: false,
+                partnerSelection: .fixed
             ),
             Match(
                 id: UUID().uuidString,
@@ -93,7 +97,8 @@ class MatchViewModel: ObservableObject {
                 scores: [],
                 status: .scheduled,
                 notes: "Morning match",
-                isPublicFacility: true
+                isPublicFacility: true,
+                partnerSelection: .rotating
             )
         ]
     }
@@ -115,7 +120,8 @@ class MatchViewModel: ObservableObject {
         numberOfSets: Int,
         players: [String],
         notes: String?,
-        isPublicFacility: Bool
+        isPublicFacility: Bool,
+        partnerSelection: Match.PartnerSelection
     ) async throws {
         let match = Match(
             id: UUID().uuidString,
@@ -129,7 +135,8 @@ class MatchViewModel: ObservableObject {
             scores: [],
             status: .scheduled,
             notes: notes,
-            isPublicFacility: isPublicFacility
+            isPublicFacility: isPublicFacility,
+            partnerSelection: partnerSelection
         )
         
         // TODO: Replace with actual API call

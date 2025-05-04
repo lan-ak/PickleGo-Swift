@@ -39,12 +39,12 @@ struct MatchDetailView: View {
             PickleGoTheme.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(spacing: 28) {
+                    VStack(spacing: 24) {
+                        // Match Status Banner
                         if match.status == .completed, let userId = authService.currentUser?.id {
                             let isTeam1 = match.players.prefix(match.players.count/2).contains(userId)
                             let isTeam2 = match.players.suffix(match.players.count/2).contains(userId)
                             
-                            // Calculate total sets won by each team
                             let team1Wins = match.scores.filter { $0.team1Score > $0.team2Score }.count
                             let team2Wins = match.scores.filter { $0.team2Score > $0.team1Score }.count
                             
@@ -54,115 +54,254 @@ struct MatchDetailView: View {
                                 return false
                             }()
                             
-                            HStack {
-                                Image(systemName: didWin ? "checkmark.seal.fill" : "xmark.seal.fill")
-                                    .foregroundColor(.white)
-                                    .font(.title)
+                            HStack(spacing: 12) {
+                                Image(systemName: didWin ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .font(.title2)
                                 Text(didWin ? "You Won!" : "You Lost")
-                                    .font(.title2).bold()
-                                    .foregroundColor(.white)
+                                    .font(.headline)
                             }
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .padding()
+                            .padding(.vertical, 16)
                             .background(didWin ? PickleGoTheme.primaryGreen : Color.red)
                             .cornerRadius(PickleGoTheme.cornerRadius)
-                            .shadow(color: PickleGoTheme.shadow, radius: 4, y: 2)
                             .padding(.horizontal)
                         }
-                        Text(teamDisplay)
-                            .font(.title2).bold()
-                            .foregroundColor(PickleGoTheme.primaryGreen)
+                        
+                        // Match Title
+                        VStack(spacing: 12) {
+                            // Match Type Indicators
+                            HStack(spacing: 8) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: match.matchType == .singles ? "person.fill" : "person.2.fill")
+                                        .font(.caption)
+                                    Text(match.matchType.rawValue)
+                                        .font(.caption)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(PickleGoTheme.primaryGreen.opacity(0.15))
+                                .foregroundColor(PickleGoTheme.primaryGreen)
+                                .cornerRadius(8)
+                                
+                                if match.matchType == .doubles {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: match.partnerSelection == .fixed ? "arrow.left.arrow.right.circle.fill" : "arrow.triangle.2.circlepath.circle.fill")
+                                            .font(.caption)
+                                        Text(match.partnerSelection.rawValue)
+                                            .font(.caption)
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(PickleGoTheme.accentYellow.opacity(0.15))
+                                    .foregroundColor(PickleGoTheme.accentYellow)
+                                    .cornerRadius(8)
+                                }
+                            }
                             .padding(.bottom, 8)
-                        VStack(alignment: .leading, spacing: 20) {
-                            cardSection {
-                                Section(header: sectionHeader("Match Details")) {
-                                    detailRow("Date", match.date.formatted(date: .long, time: .shortened))
-                                    detailRow("Location", match.location)
-                                    detailRow("Type", match.matchType.rawValue)
-                                    detailRow("Points to Win", "\(match.pointsToWin)")
-                                    detailRow("Number of Sets", "\(match.numberOfSets)")
-                                }
+                            
+                            Text(teamDisplay.split(separator: " vs ")[0])
+                                .font(.title2)
+                                .bold()
+                                .foregroundColor(PickleGoTheme.primaryGreen)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            
+                            Text("vs")
+                                .font(.title3)
+                                .bold()
+                                .foregroundColor(PickleGoTheme.dark.opacity(0.7))
+                            
+                            Text(teamDisplay.split(separator: " vs ")[1])
+                                .font(.title2)
+                                .bold()
+                                .foregroundColor(PickleGoTheme.accentYellow)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            
+                            Text(match.date.formatted(date: .long, time: .shortened))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Match Details
+                        VStack(spacing: 16) {
+                            // Location and Type
+                            HStack(spacing: 20) {
+                                detailPill(icon: "mappin.circle.fill", text: match.location)
+                                detailPill(icon: "tennis.racket.circle.fill", text: match.matchType.rawValue)
                             }
-                            if let coordinate = match.locationCoordinate {
-                                cardSection {
-                                    Section(header: sectionHeader("Location Map")) {
-                                        Map {
-                                            Marker(match.location, coordinate: coordinate)
-                                        }
-                                        .frame(height: 220)
-                                        .cornerRadius(16)
-                                        .padding(.top, 8)
-                                    }
-                                }
+                            
+                            // Match Settings
+                            HStack(spacing: 20) {
+                                detailPill(icon: "number.circle.fill", text: "\(match.pointsToWin) points")
+                                detailPill(icon: "trophy.circle.fill", text: "\(match.numberOfSets) sets")
                             }
-                            cardSection {
-                                Section(header: sectionHeader("Players")) {
-                                    ForEach(playerNames, id: \.self) { name in
-                                        Text(name)
-                                            .font(.body)
-                                            .padding(.vertical, 2)
-                                    }
+                        }
+                        .padding(.horizontal)
+                        
+                        // Location Map
+                        if let coordinate = match.locationCoordinate {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Location")
+                                    .font(.headline)
+                                    .foregroundColor(PickleGoTheme.primaryGreen)
+                                Map {
+                                    Marker(match.location, coordinate: coordinate)
                                 }
+                                .frame(height: 200)
+                                .cornerRadius(PickleGoTheme.cornerRadius)
                             }
-                            if !match.scores.isEmpty {
-                                cardSection {
-                                    Section(header: sectionHeader("Scores")) {
-                                        ForEach(match.scores, id: \.gameNumber) { score in
-                                            HStack {
-                                                Text("Set \(score.gameNumber)")
-                                                Spacer()
-                                                Text("\(score.team1Score) - \(score.team2Score)")
+                            .padding(.horizontal)
+                        }
+                        
+                        // Players Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Players")
+                                .font(.headline)
+                                .foregroundColor(PickleGoTheme.primaryGreen)
+                            
+                            if match.matchType == .doubles && match.partnerSelection == .rotating {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Team Assignments")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    ForEach(0..<match.players.count, id: \.self) { index in
+                                        let playerName = playerStore.displayName(for: match.players[index])
+                                        let isTeam1 = index < match.players.count/2
+                                        
+                                        HStack {
+                                            Image(systemName: "person.circle.fill")
+                                                .font(.title2)
+                                                .foregroundColor(isTeam1 ? PickleGoTheme.primaryGreen : PickleGoTheme.accentYellow)
+                                            Text(playerName)
+                                                .font(.body)
+                                            if match.players[index] == authService.currentUser?.id {
+                                                Text("(You)")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.secondary)
                                             }
-                                            .font(.body)
-                                            .padding(.vertical, 2)
+                                            Spacer()
+                                            Text(isTeam1 ? "Team 1" : "Team 2")
+                                                .font(.caption)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(isTeam1 ? PickleGoTheme.primaryGreen.opacity(0.15) : PickleGoTheme.accentYellow.opacity(0.15))
+                                                .foregroundColor(isTeam1 ? PickleGoTheme.primaryGreen : PickleGoTheme.accentYellow)
+                                                .cornerRadius(8)
                                         }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                        .background(PickleGoTheme.card)
+                                        .cornerRadius(PickleGoTheme.cornerRadius)
                                     }
                                 }
-                            }
-                            if let notes = match.notes {
-                                cardSection {
-                                    Section(header: sectionHeader("Notes")) {
-                                        Text(notes)
-                                            .font(.body)
-                                            .padding(.vertical, 2)
+                            } else {
+                                VStack(spacing: 12) {
+                                    ForEach(playerNames, id: \.self) { name in
+                                        HStack {
+                                            Image(systemName: "person.circle.fill")
+                                                .font(.title2)
+                                                .foregroundColor(PickleGoTheme.primaryGreen)
+                                            Text(name)
+                                                .font(.body)
+                                            if match.players.contains(where: { $0 == authService.currentUser?.id && playerStore.displayName(for: $0) == name }) {
+                                                Text("(You)")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                        .background(PickleGoTheme.card)
+                                        .cornerRadius(PickleGoTheme.cornerRadius)
                                     }
                                 }
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.top, 8)
+                        
+                        // Scores Section
+                        if !match.scores.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Scores")
+                                    .font(.headline)
+                                    .foregroundColor(PickleGoTheme.primaryGreen)
+                                VStack(spacing: 8) {
+                                    ForEach(match.scores, id: \.gameNumber) { score in
+                                        HStack {
+                                            Text("Set \(score.gameNumber)")
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                            Spacer()
+                                            Text("\(score.team1Score) - \(score.team2Score)")
+                                                .font(.headline)
+                                                .foregroundColor(PickleGoTheme.dark)
+                                        }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                        .background(PickleGoTheme.card)
+                                        .cornerRadius(PickleGoTheme.cornerRadius)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // Notes Section
+                        if let notes = match.notes {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Notes")
+                                    .font(.headline)
+                                    .foregroundColor(PickleGoTheme.primaryGreen)
+                                Text(notes)
+                                    .font(.body)
+                                    .foregroundColor(PickleGoTheme.dark)
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(PickleGoTheme.card)
+                                    .cornerRadius(PickleGoTheme.cornerRadius)
+                            }
+                            .padding(.horizontal)
+                        }
                     }
+                    .padding(.vertical)
                 }
+                
+                // Action Buttons
                 if match.status == .scheduled {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         Button(action: { showingCompletion = true }) {
                             HStack {
                                 Spacer()
                                 Label("Complete Match", systemImage: "checkmark.circle")
-                                    .font(.title2.bold())
-                                    .foregroundColor(.white)
+                                    .font(.headline)
                                 Spacer()
                             }
-                            .padding()
+                            .foregroundColor(.white)
+                            .padding(.vertical, 16)
                             .background(PickleGoTheme.primaryGreen)
-                            .cornerRadius(PickleGoTheme.cornerRadius * 1.5)
-                            .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
+                            .cornerRadius(PickleGoTheme.cornerRadius)
                         }
-                        HStack(spacing: 24) {
+                        
+                        HStack(spacing: 32) {
                             Button(action: { /* TODO: Edit match action */ }) {
-                                Label("Edit", systemImage: "pencil")
-                                    .font(.body)
+                                Label("Edit", systemImage: "pencil.circle.fill")
+                                    .font(.headline)
                                     .foregroundColor(PickleGoTheme.primaryGreen)
                             }
                             Button(action: { showingDeleteConfirmation = true }) {
-                                Text("Delete Match")
-                                    .font(.body)
+                                Label("Delete", systemImage: "trash.circle.fill")
+                                    .font(.headline)
                                     .foregroundColor(.red)
                             }
                         }
+                        .padding(.top, 8)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 20)
+                    .background(PickleGoTheme.card)
                 }
             }
             .sheet(isPresented: $showingCompletion) {
@@ -182,6 +321,21 @@ struct MatchDetailView: View {
         }
     }
     
+    private func detailPill(icon: String, text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(PickleGoTheme.primaryGreen)
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(PickleGoTheme.dark)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(PickleGoTheme.card)
+        .cornerRadius(PickleGoTheme.cornerRadius)
+    }
+    
     private func deleteMatch() {
         Task {
             do {
@@ -193,35 +347,17 @@ struct MatchDetailView: View {
             }
         }
     }
-}
-
-private func cardSection<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-    VStack(alignment: .leading, spacing: 0) {
-        content()
-    }
-    .padding()
-    .background(PickleGoTheme.card)
-    .cornerRadius(PickleGoTheme.cornerRadius)
-    .shadow(color: PickleGoTheme.shadow, radius: 4, y: 2)
-    .padding(.vertical, 6)
-}
-
-private func sectionHeader(_ title: String) -> some View {
-    Text(title)
-        .font(.title3).bold()
-        .foregroundColor(PickleGoTheme.primaryGreen)
-        .padding(.bottom, 4)
-}
-
-private func detailRow(_ label: String, _ value: String) -> some View {
-    HStack {
-        Text(label)
-            .font(.body)
-            .foregroundColor(.secondary)
-        Spacer()
-        Text(value)
-            .font(.body)
-            .foregroundColor(PickleGoTheme.dark)
+    
+    private func updateMatch() {
+        Task {
+            do {
+                try await matchViewModel.updateMatch(match)
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+                showingError = true
+            }
+        }
     }
 }
 
@@ -230,16 +366,22 @@ private func detailRow(_ label: String, _ value: String) -> some View {
         id: UUID().uuidString,
         date: Date(),
         location: "Central Park Courts",
-        locationCoordinate: nil,
+        locationCoordinate: CLLocationCoordinate2D(latitude: 40.7829, longitude: -73.9654),
         matchType: .doubles,
         pointsToWin: 15,
         numberOfSets: 3,
         players: ["Player 1", "Player 2", "Player 3", "Player 4"],
-        scores: [],
-        status: .scheduled,
-        notes: "Practice match",
-        isPublicFacility: false
+        scores: [
+            Match.Score(team1Score: 11, team2Score: 9, gameNumber: 1),
+            Match.Score(team1Score: 9, team2Score: 11, gameNumber: 2),
+            Match.Score(team1Score: 11, team2Score: 8, gameNumber: 3)
+        ],
+        status: .completed,
+        notes: "Practice match with focus on serving and volleying",
+        isPublicFacility: false,
+        partnerSelection: .fixed
     ))
     .environmentObject(MatchViewModel())
     .environmentObject(PlayerStore())
+    .environmentObject(AuthenticationService())
 } 

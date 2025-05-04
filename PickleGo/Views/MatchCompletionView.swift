@@ -343,7 +343,10 @@ struct MatchCompletionView: View {
         scores: [],
         status: .scheduled,
         notes: nil,
-        isPublicFacility: false
+        isPublicFacility: false,
+        partnerSelection: .fixed
     ))
     .environmentObject(MatchViewModel())
+    .environmentObject(PlayerStore())
+    .environmentObject(AuthenticationService())
 } 
