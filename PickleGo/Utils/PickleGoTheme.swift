@@ -31,6 +31,7 @@ struct PickleGoTheme {
     static let primaryGreen = Color("PickleGoGreen")
     static let dark = Color("PickleGoDark")
     static let accentYellow = Color("PickleGoYellow")
+    static let accentBlue = Color("PickleGoTextGreen") // Using text green color for consistency
     static let textYellow = Color("PickleGoTextYellow")
     static let textGreen = Color("PickleGoTextGreen")
     static let black = Color("PickleGoBlack")

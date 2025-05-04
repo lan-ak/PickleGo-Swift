@@ -101,25 +101,27 @@ struct MatchesListView: View {
                                     .padding(.top, 40)
                             } else {
                                 ForEach(filteredMatches) { match in
-                                    MatchRowCard(match: match)
-                                        .padding(.horizontal, 16)
-                                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                            if match.status == .scheduled {
-                                                Button {
-                                                    matchToComplete = match
-                                                } label: {
-                                                    Label("Complete", systemImage: "checkmark.circle")
-                                                }
-                                                .tint(PickleGoTheme.primaryGreen)
-                                            }
-                                            Button(role: .destructive) {
-                                                Task {
-                                                    try? await matchViewModel.deleteMatch(match)
-                                                }
+                                    NavigationLink(destination: MatchDetailView(match: match)) {
+                                        MatchRowCard(match: match)
+                                            .padding(.horizontal, 16)
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        if match.status == .scheduled {
+                                            Button {
+                                                matchToComplete = match
                                             } label: {
-                                                Label("Delete", systemImage: "trash")
+                                                Label("Complete", systemImage: "checkmark.circle")
                                             }
+                                            .tint(PickleGoTheme.primaryGreen)
                                         }
+                                        Button(role: .destructive) {
+                                            Task {
+                                                try? await matchViewModel.deleteMatch(match)
+                                            }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -156,6 +158,8 @@ struct MatchesListView: View {
                     }
                 )
             }
+            .navigationTitle("Matches")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -195,64 +199,85 @@ struct MatchRowCard: View {
     }
     
     var body: some View {
-        NavigationLink(destination: MatchDetailView(match: match)) {
-            VStack(spacing: 16) {
-                // Team 1
-                Text(teamDisplay.team1)
-                    .font(.title3)
-                    .bold()
-                    .foregroundColor(PickleGoTheme.dark)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .lineLimit(1)
-                
-                // VS Separator
-                Text("vs")
-                    .font(.title2)
-                    .bold()
-                    .foregroundColor(PickleGoTheme.primaryGreen)
-                    .padding(.vertical, 4)
-                
-                // Team 2
-                Text(teamDisplay.team2)
-                    .font(.title3)
-                    .bold()
-                    .foregroundColor(PickleGoTheme.dark)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .lineLimit(1)
-                
-                Divider()
-                    .padding(.vertical, 8)
-                
-                // Match Details
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(match.date.formatted(date: .abbreviated, time: .shortened))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                        Text(match.location)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                    
-                    Spacer()
-                    
+        VStack(spacing: 16) {
+            // Match Type Indicator
+            HStack {
+                HStack(spacing: 4) {
+                    Image(systemName: match.matchType == .singles ? "person.fill" : "person.2.fill")
+                        .font(.caption)
                     Text(match.matchType.rawValue)
                         .font(.caption)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(PickleGoTheme.primaryGreen.opacity(0.15))
-                        .foregroundColor(PickleGoTheme.primaryGreen)
-                        .cornerRadius(10)
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(PickleGoTheme.primaryGreen.opacity(0.15))
+                .foregroundColor(PickleGoTheme.primaryGreen)
+                .cornerRadius(8)
+                
+                if match.matchType == .doubles {
+                    HStack(spacing: 4) {
+                        Image(systemName: match.partnerSelection == .fixed ? "arrow.left.arrow.right.circle.fill" : "arrow.triangle.2.circlepath.circle.fill")
+                            .font(.caption)
+                        Text(match.partnerSelection.rawValue)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(PickleGoTheme.accentYellow.opacity(0.15))
+                    .foregroundColor(PickleGoTheme.accentYellow)
+                    .cornerRadius(8)
+                }
+                
+                Spacer()
             }
-            .padding(20)
-            .background(PickleGoTheme.card)
-            .cornerRadius(PickleGoTheme.cornerRadius)
-            .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
-            .padding(.vertical, 8)
+            
+            // Team 1
+            Text(teamDisplay.team1)
+                .font(.title3)
+                .bold()
+                .foregroundColor(PickleGoTheme.dark)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .lineLimit(1)
+            
+            // VS Separator
+            Text("vs")
+                .font(.title2)
+                .bold()
+                .foregroundColor(PickleGoTheme.primaryGreen)
+                .padding(.vertical, 4)
+            
+            // Team 2
+            Text(teamDisplay.team2)
+                .font(.title3)
+                .bold()
+                .foregroundColor(PickleGoTheme.dark)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .lineLimit(1)
+            
+            Divider()
+                .padding(.vertical, 8)
+            
+            // Match Details
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(match.date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    Text(match.location)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+            }
         }
+        .padding(20)
+        .background(PickleGoTheme.card)
+        .cornerRadius(PickleGoTheme.cornerRadius)
+        .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
+        .padding(.vertical, 8)
     }
 }
 

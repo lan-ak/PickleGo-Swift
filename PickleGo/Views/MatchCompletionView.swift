@@ -14,11 +14,12 @@ struct MatchCompletionView: View {
     let match: Match
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var showingSaveConfirmation = false
+    @State private var isSaving = false
     
     @State private var currentSet = 1
     @State private var team1Scores: [Int] = []
     @State private var team2Scores: [Int] = []
-    @State private var selectedWinner: Int? = nil
     @State private var editingSet: Int? = nil
     @State private var gamesPerSet: Int = 2
     @State private var sets: [SetScore] = []
@@ -58,46 +59,20 @@ struct MatchCompletionView: View {
         zip(team1Scores, team2Scores).filter { $0.1 > $0.0 }.count
     }
     
+    private var allScoresEntered: Bool {
+        sets.allSatisfy { set in
+            set.team1 > 0 || set.team2 > 0
+        }
+    }
+    
+    private var canComplete: Bool {
+        allScoresEntered
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 32) {
-                    // Winner selection (moved to top)
-                    VStack(spacing: 24) {
-                        Text("Who won the match?")
-                            .font(.headline)
-                            .padding(.bottom, 8)
-                        HStack(spacing: 24) {
-                            Button(action: { selectedWinner = 1 }) {
-                                HStack {
-                                    Spacer()
-                                    Text(team1Display)
-                                        .font(.title3.bold())
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                }
-                                .padding()
-                                .background(selectedWinner == 1 ? PickleGoTheme.primaryGreen : PickleGoTheme.primaryGreen.opacity(0.5))
-                                .cornerRadius(PickleGoTheme.cornerRadius * 1.5)
-                                .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
-                            }
-                            Button(action: { selectedWinner = 2 }) {
-                                HStack {
-                                    Spacer()
-                                    Text(team2Display)
-                                        .font(.title3.bold())
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                }
-                                .padding()
-                                .background(selectedWinner == 2 ? PickleGoTheme.accentYellow : PickleGoTheme.accentYellow.opacity(0.5))
-                                .cornerRadius(PickleGoTheme.cornerRadius * 1.5)
-                                .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-
                     // Team Info Card
                     VStack(spacing: 8) {
                         Text(teamDisplay)
@@ -117,9 +92,22 @@ struct MatchCompletionView: View {
                     // Set score entry for all sets
                     ForEach(0..<sets.count, id: \.self) { setIndex in
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Set \(setIndex+1)")
-                                .font(.headline)
-                                .foregroundColor(PickleGoTheme.primaryGreen)
+                            HStack {
+                                Text("Set \(setIndex+1)")
+                                    .font(.headline)
+                                    .foregroundColor(PickleGoTheme.primaryGreen)
+                                Spacer()
+                                Button(action: { saveSetScore(setIndex) }) {
+                                    Label("Save", systemImage: "square.and.arrow.down")
+                                        .font(.subheadline)
+                                        .foregroundColor(PickleGoTheme.primaryGreen)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(PickleGoTheme.card)
+                                        .cornerRadius(8)
+                                }
+                            }
+                            
                             HStack(spacing: 16) {
                                 Text(team1Display)
                                     .font(.body)
@@ -143,56 +131,58 @@ struct MatchCompletionView: View {
                                     .textFieldStyle(.roundedBorder)
                             }
                             
-                            Text(team2Display)
-                                .font(.body)
-                                .foregroundColor(PickleGoTheme.accentYellow)
-                            Spacer()
-                            Menu {
-                                ForEach(0...match.pointsToWin, id: \.self) { n in
-                                    Button("\(n)") { sets[setIndex].team2 = n }
+                            HStack(spacing: 16) {
+                                Text(team2Display)
+                                    .font(.body)
+                                    .foregroundColor(PickleGoTheme.accentYellow)
+                                Spacer()
+                                Menu {
+                                    ForEach(0...match.pointsToWin, id: \.self) { n in
+                                        Button("\(n)") { sets[setIndex].team2 = n }
+                                    }
+                                } label: {
+                                    Text("\(sets[setIndex].team2)")
+                                        .frame(width: 44)
+                                        .padding(6)
+                                        .background(PickleGoTheme.background)
+                                        .cornerRadius(8)
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(PickleGoTheme.primaryGreen.opacity(0.2)))
                                 }
-                            } label: {
-                                Text("\(sets[setIndex].team2)")
+                                TextField("Score", value: $sets[setIndex].team2, formatter: NumberFormatter())
+                                    .keyboardType(.numberPad)
                                     .frame(width: 44)
-                                    .padding(6)
-                                    .background(PickleGoTheme.background)
-                                    .cornerRadius(8)
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(PickleGoTheme.primaryGreen.opacity(0.2)))
+                                    .textFieldStyle(.roundedBorder)
                             }
-                            TextField("Score", value: $sets[setIndex].team2, formatter: NumberFormatter())
-                                .keyboardType(.numberPad)
-                                .frame(width: 44)
-                                .textFieldStyle(.roundedBorder)
+                            
+                            // Show set winner
+                            if sets[setIndex].team1 > sets[setIndex].team2 {
+                                Text("Set Winner: \(team1Display)")
+                                    .foregroundColor(PickleGoTheme.primaryGreen).bold()
+                            } else if sets[setIndex].team2 > sets[setIndex].team1 {
+                                Text("Set Winner: \(team2Display)")
+                                    .foregroundColor(PickleGoTheme.accentYellow).bold()
+                            } else if sets[setIndex].team1 > 0 || sets[setIndex].team2 > 0 {
+                                Text("Set Winner: Tied").foregroundColor(.orange)
+                            }
                         }
-                        // Show set winner
-                        if sets[setIndex].team1 > sets[setIndex].team2 {
-                            Text("Set Winner: \(team1Display)")
-                                .foregroundColor(PickleGoTheme.primaryGreen).bold()
-                        } else if sets[setIndex].team2 > sets[setIndex].team1 {
-                            Text("Set Winner: \(team2Display)")
-                                .foregroundColor(PickleGoTheme.accentYellow).bold()
-                        } else {
-                            Text("Set Winner: Tied").foregroundColor(.orange)
-                        }
+                        .padding(20)
+                        .background(PickleGoTheme.card)
+                        .cornerRadius(PickleGoTheme.cornerRadius * 1.2)
+                        .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
+                        .padding(.horizontal)
                     }
-                    .padding(20)
-                    .background(PickleGoTheme.card)
-                    .cornerRadius(PickleGoTheme.cornerRadius * 1.2)
-                    .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
-                    .padding(.horizontal)
 
-                    // Show match winner summary
+                    // Show match summary
                     let team1SetWins = sets.filter { $0.team1 > $0.team2 }.count
                     let team2SetWins = sets.filter { $0.team2 > $0.team1 }.count
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Match Winner:")
-                        if team1SetWins > team2SetWins {
-                            Text(team1Display).foregroundColor(PickleGoTheme.primaryGreen).bold()
-                        } else if team2SetWins > team1SetWins {
-                            Text(team2Display).foregroundColor(PickleGoTheme.accentYellow).bold()
-                        } else {
-                            Text("Tied").foregroundColor(.orange)
-                        }
+                        Text("Current Score:")
+                            .font(.headline)
+                            .foregroundColor(PickleGoTheme.primaryGreen)
+                        Text("\(team1SetWins) - \(team2SetWins)")
+                            .font(.title)
+                            .bold()
+                            .foregroundColor(PickleGoTheme.dark)
                     }
                     .padding(20)
                     .background(PickleGoTheme.card)
@@ -201,32 +191,36 @@ struct MatchCompletionView: View {
                     .padding(.horizontal)
 
                     // Complete button
-                    Button(action: completeMatch) {
-                        HStack {
-                            Spacer()
+                    if allScoresEntered {
+                        Button(action: completeMatch) {
                             Label("Complete Match", systemImage: "checkmark.circle")
-                                .font(.title2.bold())
+                                .font(.headline)
                                 .foregroundColor(.white)
-                            Spacer()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(PickleGoTheme.primaryGreen)
+                                .cornerRadius(PickleGoTheme.cornerRadius)
                         }
-                        .padding()
-                        .background(PickleGoTheme.primaryGreen)
-                        .cornerRadius(PickleGoTheme.cornerRadius * 1.5)
-                        .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
                 .padding(.vertical, 32)
             }
             .background(PickleGoTheme.background)
-            .navigationTitle("Complete Match")
-            .navigationBarItems(leading: Button("Cancel") {
+            .navigationTitle("Enter Match Scores")
+            .navigationBarItems(leading: Button("Done") {
                 dismiss()
             })
             .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
+            }
+            .alert("Save Set Score", isPresented: $showingSaveConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Save", role: .none) { saveProgress() }
+            } message: {
+                Text("Would you like to save this set's score?")
             }
             .onAppear {
                 if team1Scores.count != match.numberOfSets {
@@ -236,7 +230,14 @@ struct MatchCompletionView: View {
                     team2Scores = Array(repeating: 0, count: match.numberOfSets)
                 }
                 if sets.isEmpty {
-                    sets = (0..<match.numberOfSets).map { _ in SetScore(team1: 0, team2: 0) }
+                    // Initialize sets with saved scores if they exist
+                    if !match.scores.isEmpty {
+                        sets = match.scores.map { score in
+                            SetScore(team1: score.team1Score, team2: score.team2Score)
+                        }
+                    } else {
+                        sets = (0..<match.numberOfSets).map { _ in SetScore(team1: 0, team2: 0) }
+                    }
                 }
             }
         }
@@ -261,16 +262,31 @@ struct MatchCompletionView: View {
         }
     }
     
-    private func completeMatch() {
-        let team1SetWins = sets.filter { $0.team1 > $0.team2 }.count
-        let team2SetWins = sets.filter { $0.team2 > $0.team1 }.count
-        let winner: Int? = team1SetWins > team2SetWins ? 1 : team2SetWins > team1SetWins ? 2 : nil
-
-        if winner != selectedWinner {
-            errorMessage = "The set results do not match the selected winner. Please adjust the scores."
-            showingError = true
-            return
+    private func saveSetScore(_ setIndex: Int) {
+        showingSaveConfirmation = true
+    }
+    
+    private func saveProgress() {
+        isSaving = true
+        Task {
+            do {
+                var updatedMatch = match
+                updatedMatch.scores = sets.enumerated().map { index, set in
+                    Match.Score(team1Score: set.team1, team2Score: set.team2, gameNumber: index + 1)
+                }
+                try await matchViewModel.updateMatch(updatedMatch)
+                isSaving = false
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+                showingError = true
+                isSaving = false
+            }
         }
+    }
+    
+    private func completeMatch() {
+        isSaving = true
         Task {
             do {
                 var updatedMatch = match
@@ -279,10 +295,12 @@ struct MatchCompletionView: View {
                     Match.Score(team1Score: set.team1, team2Score: set.team2, gameNumber: index + 1)
                 }
                 try await matchViewModel.updateMatch(updatedMatch)
+                isSaving = false
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription
                 showingError = true
+                isSaving = false
             }
         }
     }

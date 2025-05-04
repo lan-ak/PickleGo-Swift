@@ -8,7 +8,6 @@ class AuthenticationService: ObservableObject {
         username: "John Doe",
         email: "test@test.com",
         profileImageURL: nil,
-        skillLevel: .intermediate,
         friends: [],
         matches: []
     )
@@ -28,7 +27,6 @@ class AuthenticationService: ObservableObject {
                 username: "John Doe",
                 email: "test@test.com",
                 profileImageURL: nil,
-                skillLevel: .intermediate,
                 friends: [],
                 matches: []
             )
@@ -53,7 +51,6 @@ class AuthenticationService: ObservableObject {
                 username: "John Doe",
                 email: "test@test.com",
                 profileImageURL: nil,
-                skillLevel: .beginner,
                 friends: [],
                 matches: []
             )

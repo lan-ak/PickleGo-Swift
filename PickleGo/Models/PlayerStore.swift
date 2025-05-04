@@ -1,13 +1,31 @@
 import Foundation
+import Combine
 
 class PlayerStore: ObservableObject {
-    @Published var players: [Player] = [
-        Player(id: "1", name: "John Smith", email: "john1@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, skillLevel: .intermediate, profileImageURL: nil),
-        Player(id: "2", name: "Sarah Johnson", email: "sarah2@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, skillLevel: .advanced, profileImageURL: nil),
-        Player(id: "3", name: "Mike Davis", email: "mike3@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, skillLevel: .beginner, profileImageURL: nil),
-        Player(id: "4", name: "Emily Wilson", email: "emily4@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, skillLevel: .intermediate, profileImageURL: nil),
-        Player(id: "5", name: "David Brown", email: "david5@example.com", phoneNumber: nil, isRegistered: false, isInvited: true, skillLevel: .beginner, profileImageURL: nil)
+    private var cancellables = Set<AnyCancellable>()
+    private let playersSubject = CurrentValueSubject<[Player], Never>([])
+    
+    @Published private(set) var players: [Player] = [
+        Player(id: "1", name: "John Smith", email: "john1@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "2", name: "Sarah Johnson", email: "sarah2@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "3", name: "Mike Davis", email: "mike3@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "4", name: "Emily Wilson", email: "emily4@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "5", name: "David Brown", email: "david5@example.com", phoneNumber: nil, isRegistered: false, isInvited: true, profileImageURL: nil)
     ].filter { !$0.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    
+    static let samplePlayers = [
+        Player(id: "1", name: "John Smith", email: "john1@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "2", name: "Sarah Johnson", email: "sarah2@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "3", name: "Mike Davis", email: "mike3@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "4", name: "Emily Wilson", email: "emily4@example.com", phoneNumber: nil, isRegistered: true, isInvited: false, profileImageURL: nil),
+        Player(id: "5", name: "David Brown", email: "david5@example.com", phoneNumber: nil, isRegistered: false, isInvited: true, profileImageURL: nil)
+    ]
+    
+    init() {
+        playersSubject
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$players)
+    }
     
     func name(for id: String) -> String {
         players.first(where: { $0.id == id })?.name ?? "Unknown"
@@ -38,7 +56,21 @@ class PlayerStore: ObservableObject {
     
     func addIfNeeded(_ player: Player) {
         if !players.contains(where: { $0.id == player.id }) {
-            players.append(player)
+            var updatedPlayers = players
+            updatedPlayers.append(player)
+            playersSubject.send(updatedPlayers)
+        }
+    }
+    
+    func savePlayer(_ player: Player) async throws {
+        if let index = players.firstIndex(where: { $0.id == player.id }) {
+            var updatedPlayers = players
+            updatedPlayers[index] = player
+            playersSubject.send(updatedPlayers)
+        } else {
+            var updatedPlayers = players
+            updatedPlayers.append(player)
+            playersSubject.send(updatedPlayers)
         }
     }
     

@@ -23,7 +23,6 @@ struct ContentView: View {
                     username: "Test User",
                     email: "test@test.com",
                     profileImageURL: nil,
-                    skillLevel: .beginner,
                     friends: [],
                     matches: []
                 )

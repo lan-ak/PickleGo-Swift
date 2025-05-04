@@ -34,6 +34,7 @@ struct Match: Identifiable, Codable {
     var status: MatchStatus
     var notes: String?
     let isPublicFacility: Bool
+    var partnerSelection: PartnerSelection
     
     struct Score: Codable {
         var team1Score: Int
@@ -51,5 +52,10 @@ struct Match: Identifiable, Codable {
     enum MatchType: String, Codable, CaseIterable {
         case singles = "Singles"
         case doubles = "Doubles"
+    }
+    
+    enum PartnerSelection: String, Codable, CaseIterable {
+        case fixed = "Fixed Partners"
+        case rotating = "Rotating Partners"
     }
 } 

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var matchViewModel: MatchViewModel
+    @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var playerStore: PlayerStore
     @State private var showingNewMatch = false
     
     private var nextMatch: Match? {
@@ -18,98 +20,179 @@ struct HomeView: View {
             .prefix(3))
     }
     
+    private var userId: String? {
+        authService.currentUser?.id
+    }
+    
+    private func didWin(match: Match) -> Bool? {
+        guard let userId = userId else { return nil }
+        let isTeam1 = match.players.prefix(match.players.count/2).contains(userId)
+        let isTeam2 = match.players.suffix(match.players.count/2).contains(userId)
+        
+        let team1Wins = match.scores.filter { $0.team1Score > $0.team2Score }.count
+        let team2Wins = match.scores.filter { $0.team2Score > $0.team1Score }.count
+        
+        if isTeam1 { return team1Wins > team2Wins }
+        if isTeam2 { return team2Wins > team1Wins }
+        return nil
+    }
+    
     var body: some View {
         ZStack {
             PickleGoTheme.background.ignoresSafeArea()
             ScrollView {
-                VStack(spacing: 20) {
-                    PickleGoLogoHeader(subtitle: "Welcome! Schedule and track your pickleball matches.")
-                    // Next Match Card
-                    if let nextMatch = nextMatch {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Next Match")
-                                .font(.headline)
-                                .foregroundColor(PickleGoTheme.primaryGreen)
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(nextMatch.players.joined(separator: " vs "))
-                                    .font(.title2)
-                                    .bold()
-                                HStack {
-                                    Image(systemName: "calendar")
-                                    Text(nextMatch.date.formatted(date: .abbreviated, time: .shortened))
-                                }
-                                .foregroundColor(.secondary)
-                                HStack {
-                                    Image(systemName: "mappin")
-                                    Text(nextMatch.location)
-                                }
-                                .foregroundColor(.secondary)
-                            }
-                            .padding()
-                            .background(PickleGoTheme.card)
-                            .cornerRadius(PickleGoTheme.cornerRadius)
-                            .shadow(color: PickleGoTheme.shadow, radius: 8, y: 4)
-                        }
-                        .padding(.horizontal)
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 4) {
+                        Text("PickleGo")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(PickleGoTheme.primaryGreen)
+                        Text("Welcome back!")
+                            .font(.headline)
+                            .foregroundColor(PickleGoTheme.dark.opacity(0.7))
                     }
-                    // Quick Actions
+                    .padding(.top, 16)
+                    
+                    // Next Match Section
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Quick Actions")
+                        Text("Next Match")
                             .font(.headline)
                             .foregroundColor(PickleGoTheme.primaryGreen)
-                        HStack(spacing: 16) {
-                            QuickActionButton(
-                                title: "New Match",
-                                icon: "plus.circle.fill",
-                                color: PickleGoTheme.accentYellow
-                            ) {
-                                showingNewMatch = true
-                            }
-                            QuickActionButton(
-                                title: "Find Players",
-                                icon: "person.2.fill",
-                                color: PickleGoTheme.primaryGreen
-                            ) {
-                                // TODO: Implement find players
-                            }
-                            QuickActionButton(
-                                title: "Locations",
-                                icon: "mappin.circle.fill",
-                                color: .orange
-                            ) {
-                                // TODO: Implement locations
+                            .padding(.horizontal)
+                        
+                        if let nextMatch = nextMatch {
+                            NavigationLink(destination: MatchDetailView(match: nextMatch)) {
+                                VStack(spacing: 16) {
+                                    // Team 1
+                                    Text(nextMatch.players.prefix(nextMatch.players.count/2).map { playerStore.displayName(for: $0) }.joined(separator: " & "))
+                                        .font(.title3)
+                                        .bold()
+                                        .foregroundColor(PickleGoTheme.dark)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .lineLimit(1)
+                                    
+                                    // VS Separator
+                                    Text("vs")
+                                        .font(.title2)
+                                        .bold()
+                                        .foregroundColor(PickleGoTheme.primaryGreen)
+                                        .padding(.vertical, 4)
+                                    
+                                    // Team 2
+                                    Text(nextMatch.players.suffix(nextMatch.players.count/2).map { playerStore.displayName(for: $0) }.joined(separator: " & "))
+                                        .font(.title3)
+                                        .bold()
+                                        .foregroundColor(PickleGoTheme.dark)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .lineLimit(1)
+                                    
+                                    Divider()
+                                        .padding(.vertical, 8)
+                                    
+                                    // Match Details
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(nextMatch.date.formatted(date: .abbreviated, time: .shortened))
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                                .lineLimit(1)
+                                            Text(nextMatch.location)
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                                .lineLimit(1)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Text(nextMatch.matchType.rawValue)
+                                            .font(.caption)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(PickleGoTheme.primaryGreen.opacity(0.15))
+                                            .foregroundColor(PickleGoTheme.primaryGreen)
+                                            .cornerRadius(10)
+                                    }
+                                }
+                                .padding(20)
+                                .background(PickleGoTheme.card)
+                                .cornerRadius(PickleGoTheme.cornerRadius)
+                                .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
+                                .padding(.horizontal)
                             }
                         }
                     }
-                    .padding(.horizontal)
-                    // Recent Activity
+                    
+                    // Stats Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Your Stats")
+                            .font(.headline)
+                            .foregroundColor(PickleGoTheme.primaryGreen)
+                            .padding(.horizontal)
+                        
+                        VStack(spacing: 16) {
+                            Text("Coming Soon")
+                                .font(.title3)
+                                .foregroundColor(PickleGoTheme.dark.opacity(0.7))
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 32)
+                        }
+                        .padding(20)
+                        .background(PickleGoTheme.card)
+                        .cornerRadius(PickleGoTheme.cornerRadius)
+                        .shadow(color: PickleGoTheme.shadow, radius: 6, y: 3)
+                        .padding(.horizontal)
+                    }
+                    
+                    // Recent Activity Section
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Recent Activity")
                             .font(.headline)
                             .foregroundColor(PickleGoTheme.primaryGreen)
+                            .padding(.horizontal)
+                        
                         ForEach(recentMatches) { match in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(match.players.joined(separator: " vs "))
-                                        .font(.subheadline)
-                                        .bold()
-                                    Text(match.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                            NavigationLink(destination: MatchDetailView(match: match)) {
+                                VStack(spacing: 12) {
+                                    // Teams
+                                    HStack {
+                                        Text(match.players.prefix(match.players.count/2).map { playerStore.displayName(for: $0) }.joined(separator: " & "))
+                                            .font(.subheadline)
+                                            .bold()
+                                            .foregroundColor(PickleGoTheme.dark)
+                                        
+                                        Text("vs")
+                                            .font(.subheadline)
+                                            .foregroundColor(PickleGoTheme.primaryGreen)
+                                            .padding(.horizontal, 4)
+                                        
+                                        Text(match.players.suffix(match.players.count/2).map { playerStore.displayName(for: $0) }.joined(separator: " & "))
+                                            .font(.subheadline)
+                                            .bold()
+                                            .foregroundColor(PickleGoTheme.dark)
+                                    }
+                                    
+                                    HStack {
+                                        Text(match.date.formatted(date: .abbreviated, time: .shortened))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Spacer()
+                                        
+                                        if let won = didWin(match: match) {
+                                            Text(won ? "Won" : "Lost")
+                                                .font(.headline)
+                                                .foregroundColor(won ? PickleGoTheme.primaryGreen : .red)
+                                        }
+                                    }
                                 }
-                                Spacer()
-                                if let lastScore = match.scores.last {
-                                    Text("\(lastScore.team1Score) - \(lastScore.team2Score)")
-                                        .font(.headline)
-                                }
+                                .padding()
+                                .background(PickleGoTheme.card)
+                                .cornerRadius(PickleGoTheme.cornerRadius)
+                                .shadow(color: PickleGoTheme.shadow, radius: 4, y: 2)
                             }
-                            .padding()
-                            .background(PickleGoTheme.card)
-                            .cornerRadius(PickleGoTheme.cornerRadius)
-                            .shadow(color: PickleGoTheme.shadow, radius: 4, y: 2)
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
@@ -120,32 +203,9 @@ struct HomeView: View {
     }
 }
 
-struct QuickActionButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(color)
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(PickleGoTheme.card)
-            .cornerRadius(PickleGoTheme.cornerRadius)
-            .shadow(color: PickleGoTheme.shadow, radius: 2, y: 1)
-        }
-    }
-}
-
 #Preview {
     HomeView()
         .environmentObject(MatchViewModel())
+        .environmentObject(AuthenticationService())
+        .environmentObject(PlayerStore())
 } 
