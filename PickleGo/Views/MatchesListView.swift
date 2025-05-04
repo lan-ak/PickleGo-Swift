@@ -42,14 +42,30 @@ struct MatchesListView: View {
             .sorted { $0.date > $1.date }
     }
     
+    private func isUserInTeam1(of match: Match) -> Bool {
+        guard let userId = userId else { return false }
+        return match.players.prefix(match.players.count/2).contains(userId)
+    }
+    
+    private func isUserInTeam2(of match: Match) -> Bool {
+        guard let userId = userId else { return false }
+        return match.players.suffix(match.players.count/2).contains(userId)
+    }
+    
+    private func team1Wins(in match: Match) -> Int {
+        match.scores.filter { $0.team1Score > $0.team2Score }.count
+    }
+    
+    private func team2Wins(in match: Match) -> Int {
+        match.scores.filter { $0.team2Score > $0.team1Score }.count
+    }
+    
     private var wonMatches: [Match] {
         completedMatches.filter { match in
-            guard let userId = userId else { return false }
-            let isTeam1 = match.players.prefix(match.players.count/2).contains(userId)
-            let isTeam2 = match.players.suffix(match.players.count/2).contains(userId)
-            
-            let team1Wins = match.scores.filter { $0.team1Score > $0.team2Score }.count
-            let team2Wins = match.scores.filter { $0.team2Score > $0.team1Score }.count
+            let isTeam1 = isUserInTeam1(of: match)
+            let isTeam2 = isUserInTeam2(of: match)
+            let team1Wins = team1Wins(in: match)
+            let team2Wins = team2Wins(in: match)
             
             if isTeam1 && team1Wins > team2Wins { return true }
             if isTeam2 && team2Wins > team1Wins { return true }
@@ -59,12 +75,10 @@ struct MatchesListView: View {
     
     private var lostMatches: [Match] {
         completedMatches.filter { match in
-            guard let userId = userId else { return false }
-            let isTeam1 = match.players.prefix(match.players.count/2).contains(userId)
-            let isTeam2 = match.players.suffix(match.players.count/2).contains(userId)
-            
-            let team1Wins = match.scores.filter { $0.team1Score > $0.team2Score }.count
-            let team2Wins = match.scores.filter { $0.team2Score > $0.team1Score }.count
+            let isTeam1 = isUserInTeam1(of: match)
+            let isTeam2 = isUserInTeam2(of: match)
+            let team1Wins = team1Wins(in: match)
+            let team2Wins = team2Wins(in: match)
             
             if isTeam1 && team1Wins < team2Wins { return true }
             if isTeam2 && team2Wins < team1Wins { return true }
@@ -150,7 +164,7 @@ struct MatchesListView: View {
                                 Image(systemName: "plus.circle.fill")
                                     .resizable()
                                     .frame(width: 56, height: 56)
-                                    .foregroundColor(PickleGoTheme.accentYellow)
+                                    .foregroundColor(PickleGoTheme.primaryYellow)
                                     .shadow(radius: 6)
                             }
                             .padding()
@@ -223,8 +237,8 @@ struct MatchRowCard: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(PickleGoTheme.accentYellow.opacity(0.15))
-                    .foregroundColor(PickleGoTheme.accentYellow)
+                    .background(PickleGoTheme.primaryYellow.opacity(0.15))
+                    .foregroundColor(PickleGoTheme.primaryYellow)
                     .cornerRadius(8)
                 }
                 
